@@ -3,6 +3,7 @@
 .idea*
 work/
 results/
+/cleanup.sh
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,jupyternotebooks,sublimetext,macos,linux
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,jupyternotebooks,sublimetext,macos,linux

@@ -2,15 +2,7 @@
 
 
 
-input_hic_file_channel = Channel.fromPath("/mnt/ndata/Juan/HiC-maps/RPE_Control.hic")
-
-
-params.chromosomes = '1,2,3'
-params.binSize = "100000,1000000"
-params.out_dir = "./test_CALDER"
-params.normalization = 'KR,NONE'
-
-
+input_hic_file_channel = Channel.fromPath(params.input)
 input_hic_file_channel.into { 
     input_hic_file_chroms;
     input_hic_file_contacts 
@@ -58,7 +50,7 @@ process get_chromosomes {
 
     if "${params.chromosomes}" == "ALL":
         for v in getChromosomes("${input_hic_file}"):
-            if v.name not in ['ALL']:
+            if v.name not in ['ALL'] + "${params.excludeChromosomes}".strip().split(","):
                 print(v.name)
     else:
         for v in "${params.chromosomes}".strip().split(","):
@@ -76,7 +68,7 @@ process dump_chromosomes {
     each norm from normalizations.splitText().map{x -> x.strip()}
 
     output:
-    tuple val(chrom), val(binSize), val(norm), file("dump.txt") into chromosome_dumps
+    tuple file(input_hic_file), val(chrom), val(binSize), val(norm), file("dump.txt") into chromosome_dumps
     """
     #!/usr/bin/env bash
 
@@ -94,11 +86,15 @@ process dump_chromosomes {
 
 process run_CALDER {
 
+    publishDir "${params.out_dir}", pattern: "calder", saveAs: { name -> 
+        "${input_hic_file.getBaseName()}/${binSize}/${normalization}/${chrom}"
+    }, mode: 'move'
+
     input:
-    tuple val(chrom), val(binSize), val(normalization), file("dump.txt") from chromosome_dumps
+    tuple file(input_hic_file), val(chrom), val(binSize), val(normalization), file("dump.txt") from chromosome_dumps
 
     output:
-    tuple val(chrom), val(binSize), val(normalization), path('calder') into calder_out
+    path "calder" into calder_out
 
     """
     #!/usr/bin/env Rscript
@@ -112,7 +108,5 @@ process run_CALDER {
                 save_intermediate_data=FALSE)
     """
 }
-
-
 
 
